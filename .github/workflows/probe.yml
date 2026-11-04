@@ -1,0 +1,30 @@
+name: upload-artifact-command-boundary
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - id: upload
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: controlled-probe
+          path: data
+      - name: Exact benign output oracle
+        if: always()
+        shell: python
+        env:
+          UA_PROBE: ${{ steps.upload.outputs.ua_probe }}
+          UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+        run: |
+          import os
+          value = os.environ.get("UA_PROBE", "")
+          print("UA_OUTPUT_PRESENT=" + ("1" if value else "0"))
+          print("UA_OUTPUT_MATCH=" + ("1" if value == "COLLISION" else "0"))
+          print("UA_UPLOAD_FAILED=" + ("1" if os.environ.get("UPLOAD_OUTCOME") == "failure" else "0"))
